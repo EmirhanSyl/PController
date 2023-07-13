@@ -34,25 +34,16 @@ public class ConsoleMessageReader : MonoBehaviour
 
     void HandleLog(string logString, string stackTrace, LogType type)
     {
-
-        //if (activeMessageCount >= activeMessageLimit)
-        //{
-            CreateMessageText(logString);
-        //}
-        //else
-        //{
-        //    DeleteMessageText(messageTextHolder.transform.GetChild(0).gameObject.GetComponent<TMP_Text>());
-        //    CreateMessageText(logString);
-        //}
+        CreateMessageText(logString);
     }
 
     private void CreateMessageTextPool()
     {
         if (messageTextTemplate != null)
         {
-            for (int i = 0; i < poolSize; i++) 
+            for (int i = 0; i < poolSize; i++)
             {
-                var text = Instantiate(messageTextTemplate);
+                var text = Instantiate(messageTextTemplate, messageTextPoolHolder.transform, false);
                 text.gameObject.SetActive(false);
                 textPool.Enqueue(text);
             }
@@ -63,15 +54,15 @@ public class ConsoleMessageReader : MonoBehaviour
     {
         TMP_Text poolText = textPool.Dequeue();
         poolText.gameObject.SetActive(true);
-        poolText.text = text;   
-        poolText.gameObject.transform.SetParent(messageTextHolder.transform);
-
+        poolText.text = text;
+        poolText.gameObject.transform.SetParent(messageTextHolder.transform, false);
+        poolText.transform.SetAsFirstSibling();
         activeMessageCount++;
     }
 
     private void DeleteMessageText(TMP_Text deletedText)
     {
-        deletedText.transform.SetParent(messageTextPoolHolder.transform);
+        deletedText.transform.SetParent(messageTextPoolHolder.transform, false);
         deletedText.gameObject.SetActive(false);
         textPool.Enqueue(deletedText);
 
