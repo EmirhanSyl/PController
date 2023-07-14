@@ -23,5 +23,7 @@ public class NetworkManagerController : MonoBehaviour
         startClientBtn.onClick.AddListener(() => {
             NetworkManager.Singleton.StartClient();
         });
+
+        NetworkManager.Singleton.OnClientConnectedCallback += (id) => { Debug.Log("CLIENT CONNECTED! Client ID: " + id); };
     }
 }
