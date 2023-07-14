@@ -3,23 +3,39 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using System;
 
 public class ConsoleMessageReader : MonoBehaviour
 {
     [SerializeField] private TMP_Text messageTextTemplate;
-    [SerializeField] private GameObject messageTextHolder;
-    [SerializeField] private GameObject messageTextPoolHolder;
+    [SerializeField] private Transform messageTextHolder;
+
+    [SerializeField] private Button infinityLogButton;
+    [SerializeField] private Button clearLogButton;
+
+    [SerializeField] private Color infoTextColor = Color.white;
+    [SerializeField] private Color warningTextColor = Color.yellow;
+    [SerializeField] private Color errorTextColor = Color.red;
 
     [SerializeField] private int poolSize = 10;
-    [SerializeField] private int activeMessageLimit = 4;
 
-    private Queue<TMP_Text> textPool = new Queue<TMP_Text>();
+    [SerializeField] private bool infinityLog = false;
+
 
     private int activeMessageCount;
 
     private void Awake()
     {
         CreateMessageTextPool();
+
+        infinityLogButton.onClick.AddListener(() => {
+            infinityLog = !infinityLog;
+            CreateMessageText("INFINITE LOG MODE: " + infinityLog, Color.green);
+        });
+
+        clearLogButton.onClick.AddListener(() => {
+            ClearLog();
+        });
     }
 
     void OnEnable()
@@ -34,7 +50,8 @@ public class ConsoleMessageReader : MonoBehaviour
 
     void HandleLog(string logString, string stackTrace, LogType type)
     {
-        CreateMessageText(logString);
+        Color textColor = SetMessageColor(type);
+        CreateMessageText(logString, textColor);
     }
 
     private void CreateMessageTextPool()
@@ -43,29 +60,63 @@ public class ConsoleMessageReader : MonoBehaviour
         {
             for (int i = 0; i < poolSize; i++)
             {
-                var text = Instantiate(messageTextTemplate, messageTextPoolHolder.transform, false);
+                var text = Instantiate(messageTextTemplate, messageTextHolder, false);
                 text.gameObject.SetActive(false);
-                textPool.Enqueue(text);
             }
         }
     }
 
-    private void CreateMessageText(string text)
+    private void CreateMessageText(string text, Color messageColor)
     {
-        TMP_Text poolText = textPool.Dequeue();
+        TMP_Text poolText;
+
+        if (infinityLog)
+        {
+            poolText = Instantiate(messageTextTemplate, messageTextHolder, false);
+        }
+        else
+        {
+            poolText = messageTextHolder.GetChild(messageTextHolder.childCount - 1).GetComponent<TMP_Text>();
+        }
+
+        poolText.color = messageColor;
         poolText.gameObject.SetActive(true);
-        poolText.text = text;
-        poolText.gameObject.transform.SetParent(messageTextHolder.transform, false);
+
+        string message = "[" + DateTime.Now.TimeOfDay.ToString().Substring(0, 8) + "] " + text;
+        poolText.text = message;
         poolText.transform.SetAsFirstSibling();
-        activeMessageCount++;
     }
 
-    private void DeleteMessageText(TMP_Text deletedText)
+    private Color SetMessageColor(LogType type)
     {
-        deletedText.transform.SetParent(messageTextPoolHolder.transform, false);
-        deletedText.gameObject.SetActive(false);
-        textPool.Enqueue(deletedText);
+        if (type == LogType.Error || type == LogType.Exception)
+        {
+            return errorTextColor;
+        }
+        else if (type == LogType.Warning)
+        {
+            return warningTextColor;
+        }
+        else
+        {
+            return infoTextColor;
+        }
+    }
 
-        activeMessageCount--;
+    private void ClearLog()
+    {
+        for (int i = 0; i < messageTextHolder.childCount; i++)
+        {
+            if (i < poolSize)
+            {
+                messageTextHolder.GetChild(i).gameObject.SetActive(false);
+            }
+            else
+            {
+                Destroy(messageTextHolder.GetChild(i).gameObject);
+            }
+        }
+
+        CreateMessageText("LOG CLEARED!", Color.green);
     }
 }
