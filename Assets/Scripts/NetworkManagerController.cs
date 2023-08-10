@@ -47,6 +47,29 @@ public class NetworkManagerController : MonoBehaviour
 
     }
 
+    private void Start()
+    {
+        ConnectSpesifiedServer("127.0.0.1", 7777);
+        StartCoroutine(StartPing("192.168.1.200"));
+    }
+
+    IEnumerator StartPing(string ip)
+    {
+        WaitForSeconds f = new WaitForSeconds(0.05f);
+        Ping p = new Ping(ip);
+        while (p.isDone == false)
+        {
+            yield return f;
+        }
+        PingFinished(p);
+    }
+
+
+    public void PingFinished(Ping p)
+    {
+        Debug.Log("Ping Done for ip: " + p.ip + " time: " + p.time);
+    }
+
     private void Update()
     {
         if (NetworkManager.Singleton.IsHost && NetworkManager.Singleton.ConnectedClientsList.Count > 1)
@@ -77,6 +100,20 @@ public class NetworkManagerController : MonoBehaviour
                 7777,
                 "0.0.0.0"
             );
+        }
+    }
+
+    public static void ConnectSpesifiedServer(string ip, ushort port)
+    {
+        if (!string.IsNullOrEmpty(ip))
+        {
+            NetworkManager.Singleton.GetComponent<UnityTransport>().SetConnectionData(
+                ip,
+                port,
+                "0.0.0.0"
+            );
+
+            NetworkManager.Singleton.StartClient();
         }
     }
 }
