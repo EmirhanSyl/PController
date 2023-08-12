@@ -27,7 +27,10 @@ public class AvailableHostHandler : MonoBehaviour
 
     private TcpClient client = new TcpClient();
     private System.Net.NetworkInformation.Ping _ping = new System.Net.NetworkInformation.Ping();
-    private PingReply _reply;
+
+    private List<string> availableIPAddresses = new List<string>();
+
+    private bool isSearchingComplated = false;
 
     void Start()
     {
@@ -35,44 +38,76 @@ public class AvailableHostHandler : MonoBehaviour
 
         refreshServersBtn.onClick.AddListener(CheckNetwork);
 
-        //CheckServerAvailability("192.168.1.200");
     }
 
-    void Update()
+    private void Update()
     {
-
+        if (isSearchingComplated)
+        {
+            CreateAvailableIPTamplates();
+            isSearchingComplated = false;
+        }
     }
 
     private void CheckNetwork()
     {
-        CheckAvailableServers();
+        refreshServersBtn.GetComponentInChildren<TMP_Text>().text = "Refreshing...";
+        refreshServersBtn.interactable = false;
+
+        CheckAvailableServers().ContinueWith(task =>
+        {
+            Debug.Log("Task Status: " + task.Status);
+            isSearchingComplated |= task.Status == TaskStatus.RanToCompletion;
+        });
     }
+
+    private void CreateAvailableIPTamplates()
+    {
+        // CHANGE THIS LATER WITH A MORE EFFICIENT METHOD
+        for (int i = 0; i < templateParent.childCount; i++)
+        {
+            Destroy(templateParent.GetChild(i).gameObject);
+        }
+
+        foreach (string ipAddress in availableIPAddresses)
+        {
+            var initiatedServer = Instantiate(availableServerTemplate, templateParent);
+            initiatedServer.transform.GetChild(2).GetComponent<TMP_Text>().text = ipAddress;
+
+            initiatedServer.GetComponentInChildren<Button>().onClick.AddListener(() =>
+            {
+                NetworkManagerController.ConnectSpesifiedServer(ipAddress, (ushort)port);
+            });
+        }
+
+        refreshServersBtn.GetComponentInChildren<TMP_Text>().text = "Refresh Servers";
+        refreshServersBtn.interactable = true;
+
+        availableIPAddresses.Clear();
+    }
+
     private async Task CheckAvailableServers()
     {
         var tasks = new List<Task>();
 
         // Divide the IP address range into smaller chunks
-        int chunkSize = 16; 
+        int chunkSize = 16;
 
         for (int i = 1; i < 256; i += chunkSize)
         {
             List<string> ipAddresses = GenerateIPAddressesInRange(i, i + chunkSize);
-            tasks.Add(Task.Run(async () =>
+            tasks.Add(Task.Run(() =>
             {
                 foreach (string ipAddress in ipAddresses)
                 {
                     Debug.Log("Iteration: " + ipAddress);
-                    if (await CheckServerAvailabilityAsync(ipAddress))
+                    if (CheckServerAvailabilityAsync(ipAddress))
                     {
-                        var initiatedServer = Instantiate(availableServerTemplate, templateParent);
-                        initiatedServer.GetComponentInChildren<TMP_Text>().text = ipAddress;
-
-                        initiatedServer.GetComponentInChildren<Button>().onClick.AddListener(() =>
-                        {
-                            NetworkManagerController.ConnectSpesifiedServer(ipAddress, (ushort)port);
-                        });
+                        availableIPAddresses.Add(ipAddress);
                     }
                 }
+
+                return Task.CompletedTask;
             }));
         }
 
@@ -92,26 +127,30 @@ public class AvailableHostHandler : MonoBehaviour
     }
 
 
-    private async Task<bool> CheckServerAvailabilityAsync(string ip)
+    private bool CheckServerAvailabilityAsync(string ip)
     {
         try
         {
-            var replyTask = Task.Run(() => _ping.Send(ip));
-            await Task.WhenAny(replyTask, Task.Delay(200));
+            var replyTask = _ping.Send(ip);
 
-            if (replyTask.IsCompleted && replyTask.Result.Status == IPStatus.Success)
+            if (replyTask.Status == IPStatus.Success)
             {
+                Debug.Log("Ping Success!");
                 return true;
             }
 
+            Debug.Log("Failed To Ping!");
             return false;
         }
         catch
         {
+            Debug.Log("Failed To Ping!");
             return false;
         }
     }
 
+
+    //------------------------ TCP Client cannot connect to devices ---------------------
     private void RefreshAvailableServersAsync()
     {
         refreshServersBtn.GetComponentInChildren<TMP_Text>().text = "Refreshing...";
