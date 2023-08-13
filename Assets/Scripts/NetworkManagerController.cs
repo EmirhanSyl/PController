@@ -4,12 +4,10 @@ using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using System.Linq;
 using UnityEngine.SceneManagement;
 using Unity.Netcode.Transports.UTP;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
-using IronPython.Runtime;
 
 public class NetworkManagerController : MonoBehaviour
 {

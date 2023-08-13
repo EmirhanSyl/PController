@@ -36,7 +36,8 @@ public class AvailableHostHandler : MonoBehaviour
     {
         cancellationToken = cts.Token;
 
-        refreshServersBtn.onClick.AddListener(CheckNetwork);
+        refreshServersBtn.onClick.AddListener(CheckServersFromDatabase);
+
 
     }
 
@@ -49,16 +50,49 @@ public class AvailableHostHandler : MonoBehaviour
         }
     }
 
-    private void CheckNetwork()
-    {
-        refreshServersBtn.GetComponentInChildren<TMP_Text>().text = "Refreshing...";
-        refreshServersBtn.interactable = false;
 
-        CheckAvailableServers().ContinueWith(task =>
+    private void CheckServersFromDatabase()
+    {
+        string rawServersData = "";
+        StartCoroutine(GetServersRawData());
+        
+        IEnumerator GetServersRawData()
         {
-            Debug.Log("Task Status: " + task.Status);
-            isSearchingComplated |= task.Status == TaskStatus.RanToCompletion;
-        });
+            using (UnityWebRequest www = UnityWebRequest.Get("https://api.simtechtouch.com/listServers.php"))
+            {
+                yield return www.SendWebRequest();
+
+                if (www.result == UnityWebRequest.Result.ConnectionError || www.result == UnityWebRequest.Result.ProtocolError)
+                {
+                    Debug.LogError("Error sending POST request: " + www.error);
+                }
+                else
+                {
+                    Debug.Log("POST request successful!");
+                    Debug.Log("Response: " + www.downloadHandler.text);
+                    rawServersData = www.downloadHandler.text;
+                    ProcessRawData(rawServersData);
+                }
+            }
+        }
+    }
+
+    private void ProcessRawData(string rawData)
+    {
+
+        if (rawData == "0 results" || rawData == "")
+        {
+            return;
+        }
+
+        string[] ipArray = rawData.Split('&');
+        foreach (string ip in ipArray)
+        {
+            if (!string.IsNullOrEmpty(ip)) {
+                availableIPAddresses.Add(ip);
+            }
+        }
+        CreateAvailableIPTamplates();
     }
 
     private void CreateAvailableIPTamplates()
@@ -84,6 +118,20 @@ public class AvailableHostHandler : MonoBehaviour
         refreshServersBtn.interactable = true;
 
         availableIPAddresses.Clear();
+    }
+
+
+    //------------------- Pinging all devices is too slow + not exect solution -------------------
+    private void CheckNetwork()
+    {
+        refreshServersBtn.GetComponentInChildren<TMP_Text>().text = "Refreshing...";
+        refreshServersBtn.interactable = false;
+
+        CheckAvailableServers().ContinueWith(task =>
+        {
+            Debug.Log("Task Status: " + task.Status);
+            isSearchingComplated |= task.Status == TaskStatus.RanToCompletion;
+        });
     }
 
     private async Task CheckAvailableServers()
