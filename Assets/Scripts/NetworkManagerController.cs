@@ -8,6 +8,9 @@ using UnityEngine.SceneManagement;
 using Unity.Netcode.Transports.UTP;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
+using System.Net;
+using static Community.CsharpSqlite.Sqlite3.WhereLevel._u;
+using System.Threading.Tasks;
 
 public class NetworkManagerController : MonoBehaviour
 {
@@ -19,15 +22,23 @@ public class NetworkManagerController : MonoBehaviour
     [SerializeField] private TMP_Text statusText;
     [SerializeField] private TMP_InputField ipField;
 
+    private System.Net.NetworkInformation.Ping _ping = new System.Net.NetworkInformation.Ping();
+
+
     void Awake()
     {
 
         startHostBtn.onClick.AddListener(() =>
         {
-            SetConnection(GetDeviceIP(), 7777);
-            NetworkManager.Singleton.StartHost();
-            var connData = NetworkManager.Singleton.GetComponent<UnityTransport>().ConnectionData;
-            statusText.text = "Server Created. Server ip: " + connData.Address + " Server port: " + connData.Port;
+            string ip = GetDeviceIP();
+            if (ip != "")
+            {
+                SetConnection(ip, 7777);
+                NetworkManager.Singleton.StartHost();
+                var connData = NetworkManager.Singleton.GetComponent<UnityTransport>().ConnectionData;
+                statusText.text = "Server Created. Server ip: " + connData.Address + " Server port: " + connData.Port;
+            }
+            
         });
 
         startServerBtn.onClick.AddListener(() =>
@@ -50,6 +61,8 @@ public class NetworkManagerController : MonoBehaviour
                 Debug.Log("CLIENT CONNECTED! Client ID: " + id);
             };
         }
+
+
 
     }
 
@@ -125,8 +138,13 @@ public class NetworkManagerController : MonoBehaviour
         foreach (NetworkInterface networkInterface in networkInterfaces)
         {
             // Ignore loopback and non-operational interfaces
-            if (networkInterface.OperationalStatus != OperationalStatus.Up || networkInterface.NetworkInterfaceType == NetworkInterfaceType.Loopback)
+            if (networkInterface.OperationalStatus != OperationalStatus.Up ||
+                networkInterface.NetworkInterfaceType == NetworkInterfaceType.Loopback ||
+                networkInterface.NetworkInterfaceType == NetworkInterfaceType.Tunnel)
+            {
                 continue;
+            }
+
 
             // Get IP properties for the network interface
             IPInterfaceProperties ipProperties = networkInterface.GetIPProperties();
@@ -136,6 +154,10 @@ public class NetworkManagerController : MonoBehaviour
             {
                 if (ipInfo.Address.AddressFamily == AddressFamily.InterNetwork)
                 {
+                    if (ipInfo.Address.ToString().Equals("127.0.0.1"))
+                    {
+                        return GetDeviceIPAndroid();
+                    }
                     ipAddress = ipInfo.Address.ToString();
                     break;
                 }
@@ -145,4 +167,31 @@ public class NetworkManagerController : MonoBehaviour
 
         return ipAddress;
     }
+
+    private string GetDeviceIPAndroid()
+    {
+        string ipAddress = "";
+
+        try
+        {
+            string hostname = Dns.GetHostName();
+            IPHostEntry hostEntry = Dns.GetHostEntry(hostname);
+
+            foreach (IPAddress ip in hostEntry.AddressList)
+            {
+                if (ip.AddressFamily == AddressFamily.InterNetwork)
+                {
+                    ipAddress = ip.ToString();
+                    return ipAddress;
+                }
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError("Error getting IP address: " + ex.Message);
+        }
+
+        return ipAddress;
+    }
+
 }

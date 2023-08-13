@@ -38,7 +38,6 @@ public class AvailableHostHandler : MonoBehaviour
 
         refreshServersBtn.onClick.AddListener(CheckServersFromDatabase);
 
-
     }
 
     private void Update()
@@ -124,13 +123,9 @@ public class AvailableHostHandler : MonoBehaviour
     //------------------- Pinging all devices is too slow + not exect solution -------------------
     private void CheckNetwork()
     {
-        refreshServersBtn.GetComponentInChildren<TMP_Text>().text = "Refreshing...";
-        refreshServersBtn.interactable = false;
-
         CheckAvailableServers().ContinueWith(task =>
         {
             Debug.Log("Task Status: " + task.Status);
-            isSearchingComplated |= task.Status == TaskStatus.RanToCompletion;
         });
     }
 
@@ -139,7 +134,7 @@ public class AvailableHostHandler : MonoBehaviour
         var tasks = new List<Task>();
 
         // Divide the IP address range into smaller chunks
-        int chunkSize = 16;
+        int chunkSize = 32;
 
         for (int i = 1; i < 256; i += chunkSize)
         {
@@ -149,10 +144,7 @@ public class AvailableHostHandler : MonoBehaviour
                 foreach (string ipAddress in ipAddresses)
                 {
                     Debug.Log("Iteration: " + ipAddress);
-                    if (CheckServerAvailabilityAsync(ipAddress))
-                    {
-                        availableIPAddresses.Add(ipAddress);
-                    }
+                    CheckServerAvailabilityAsync(ipAddress);
                 }
 
                 return Task.CompletedTask;
@@ -162,7 +154,7 @@ public class AvailableHostHandler : MonoBehaviour
         await Task.WhenAll(tasks);
     }
 
-    private List<String> GenerateIPAddressesInRange(int start, int to)
+    private List<string> GenerateIPAddressesInRange(int start, int to)
     {
         var ipAddresses = new List<string>();
 
@@ -175,7 +167,7 @@ public class AvailableHostHandler : MonoBehaviour
     }
 
 
-    private bool CheckServerAvailabilityAsync(string ip)
+    private void CheckServerAvailabilityAsync(string ip)
     {
         try
         {
@@ -183,17 +175,22 @@ public class AvailableHostHandler : MonoBehaviour
 
             if (replyTask.Status == IPStatus.Success)
             {
-                Debug.Log("Ping Success!");
-                return true;
+                Debug.Log("Ping Success! " + replyTask.RoundtripTime);
+
+                if (replyTask.RoundtripTime < 0.5)
+                {
+
+                }
+                return;
             }
 
             Debug.Log("Failed To Ping!");
-            return false;
+            return;
         }
         catch
         {
             Debug.Log("Failed To Ping!");
-            return false;
+            return;
         }
     }
 
