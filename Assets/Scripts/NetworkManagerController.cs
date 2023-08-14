@@ -9,7 +9,6 @@ using Unity.Netcode.Transports.UTP;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Net;
-using static Community.CsharpSqlite.Sqlite3.WhereLevel._u;
 using System.Threading.Tasks;
 
 public class NetworkManagerController : MonoBehaviour
