@@ -88,20 +88,21 @@ public class NetworkManagerController : MonoBehaviour
     {
         if (NetworkManager.Singleton.IsHost && NetworkManager.Singleton.ConnectedClientsList.Count > 1)
         {
-            StartCoroutine(LoadSceneCorutine(1));
+            StartCoroutine(LoadSceneCorutine("DesktopApp"));
         }
         if (NetworkManager.Singleton.IsConnectedClient)
         {
-            StartCoroutine(LoadSceneCorutine(2));
+            StartCoroutine(LoadSceneCorutine("MobileApp"));
         }
 
     }
 
-    IEnumerator LoadSceneCorutine(int sceneIndex)
+    IEnumerator LoadSceneCorutine(string sceneName)
     {
         headerText.text = "Connection established! Launching App...";
         yield return new WaitForSeconds(5f);
-        SceneManager.LoadScene(sceneIndex);
+
+        NetworkManager.Singleton.SceneManager.LoadScene(sceneName, LoadSceneMode.Single);
     }
 
     private static void SetConnection(string ip, int port)

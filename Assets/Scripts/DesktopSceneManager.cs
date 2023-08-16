@@ -18,7 +18,7 @@ public class DesktopSceneManager : MonoBehaviour
     {
         if (!NetworkManager.Singleton.IsHost && NetworkManager.Singleton.IsClient)
         {
-            SceneManager.LoadScene(2);
+            NetworkManager.Singleton.SceneManager.LoadScene("MobileApp", LoadSceneMode.Additive);
         }
 
         connectedCountText.text = "Connected: " + NetworkManager.Singleton.ConnectedClientsList.Count;

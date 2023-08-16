@@ -1,18 +1,27 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 
-public class NetworkInitiatior : MonoBehaviour
+public class NetworkInitiatior : NetworkBehaviour
 {
-    // Start is called before the first frame update
-    void Start()
+    public GameObject controllerPrefab;
+    private GameObject controllerPrefabInstance;
+    private NetworkObject spawnedNetworkObject;
+
+    public override void OnNetworkSpawn()
     {
-        
+        enabled = IsServer; 
+        if (!enabled || controllerPrefab == null)
+        {
+            return;
+        }
+
+        controllerPrefabInstance = Instantiate(controllerPrefab);
+
+        spawnedNetworkObject = controllerPrefabInstance.GetComponent<NetworkObject>();
+        spawnedNetworkObject.Spawn(false);
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
+
 }

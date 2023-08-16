@@ -2,19 +2,21 @@ using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class NetworkMessageHandler : NetworkBehaviour
 {
     [SerializeField] private Button testRPCButton;
 
-    private void Awake()
+    private void Start()
     {
-        testRPCButton = GameObject.FindGameObjectWithTag("RPCMessageSender").GetComponent<Button>();
-        if (testRPCButton != null)
+        if (SceneManager.GetActiveScene().buildIndex == 2)
         {
+            testRPCButton = GameObject.FindGameObjectWithTag("RPCMessageSender").GetComponent<Button>();                
             testRPCButton.onClick.AddListener(() => SendMessageServerRPC("Button Clicked!", new ServerRpcParams()));
         }
+        
     }
 
     void Update()
